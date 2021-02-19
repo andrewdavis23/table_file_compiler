@@ -1,6 +1,8 @@
 # csv_compiler
 This tool compiles a folder of CSV files into a single file.  Query optional.
 
+I'm going to work on making this into a simple GUI application.
+
 Was originally intended to append Excel files, but there is a bug within the pd.read_excel function
 "Workbook contains no default style, apply openpyxl's default"
 Openpyxl is the engine that reads .xlxs files
