@@ -1,11 +1,6 @@
 # Creates CSV from appended all CSV files in folder
 # Andrew Davis - Feb 2021
 
-# Was originally intended to append Excel files, but there is a bug within the pd.read_excel function
-# "Workbook contains no default style, apply openpyxl's default"
-# Openpyxl is the engine that reads .xlxs files
-# Solution was to convert to another Excel file type (one that uses a different engine) or CSV
-
 import pandas as pd
 import glob
 from time import sleep
