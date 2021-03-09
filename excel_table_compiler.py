@@ -1,4 +1,3 @@
-# why do i need the first 
 from tkinter import *
 from tkinter import filedialog
 import pandas as pd
