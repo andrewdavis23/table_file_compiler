@@ -21,7 +21,7 @@ def open_file():
     for i in files:
         print(i)
 
-    # create string for the tk label
+    # add filenames to the tk list box
     for i in range(len(files)):
         file_list.insert(i, files[i].split('/')[-1])
 
