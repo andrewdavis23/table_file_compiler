@@ -1,7 +1,6 @@
 from tkinter import *
 from tkinter import filedialog
 import pandas as pd
-from time import sleep
 
 # pancake emoji
 e = chr(129374)
@@ -9,28 +8,33 @@ e = chr(129374)
 # compilation
 all_data = pd.DataFrame()
 
+files = []
+
 # select files and display file names in window
 def open_file():
     global files
+    file_list = ''
 
-    files = filedialog.askopenfilenames()
-
-    file_list.delete('0','end')
-
-    print(e+' files loaded:')
-    for i in files:
-        print(i)
+    files.extend(list( filedialog.askopenfilenames() ))
+    print(e + ' files loaded')
 
     # add filenames to the tk list box
-    for i in range(len(files)):
-        file_list.insert(i, files[i].split('/')[-1])
+    for i in files:
+        file_list += i.split('/')[-1] + '\n'
 
-    # lbl_files['text'] = files_list  
+    txt_list.insert(END, file_list)
 
     # activate compile button
     check_ready()
 
-def compile():
+def clear_files():
+    global file_list
+
+    file_list = ''
+    txt_list.delete('1.0', END)
+
+def compile_csv():
+    # plan: make it append on matching column names. exclude excess columns
     global files
 
     print(e+' compiling...')
@@ -50,6 +54,8 @@ def check_ready():
 
     if len(files) > 0:
         btn_compile["state"] = NORMAL
+    else:
+        btn_compile["state"] = DISABLED
 
 def save_file(all_data):
     out_path = filedialog.asksaveasfile(mode='w', defaultextension=".csv", filetypes=(("Excel Files", "*.xlsx"), ("CSV files", "*.csv"), ("Text files", "*.txt"), ("All files", "*.*")))
@@ -61,35 +67,30 @@ def save_file(all_data):
 # window
 root = Tk()
 root.title("CSV Compiler")
-root.geometry('500x250')
+root.geometry('610x377')
 
 # frame
 upper_frame = Frame(root, bd=5)
-upper_frame.place(relx=0.5, rely=0.1, relwidth=0.9, relheight=0.1, anchor="n")
+upper_frame.place(relx=0.5, rely=0.1, relwidth=0.9, relheight=0.2, anchor="n")
 
-lower_frame = Frame(root, bg='gray', bd=5)
+lower_frame = Frame(root, bg='peach puff', bd=5)
 lower_frame.place(relx=0.5, rely=0.25, relwidth=0.9, relheight=0.6, anchor="n")
 
-# objects - create/place
-lbl_msg = Label(upper_frame, text="Select the files and output folder. All files should contain the same headers.")
-lbl_msg.grid(column=0, row=0)
+btn_open_file = Button(upper_frame, text="Select Files", command=open_file)
+btn_open_file.grid(column=0, row=1)
 
-btn_open_file = Button(lower_frame, text="Select Files", command=open_file)
-btn_open_file.grid(column=0, row=0)
+btn_compile = Button(upper_frame, text="Compile", state=DISABLED, command=compile_csv)
+btn_compile.grid(column=1, row=1)
 
-btn_compile = Button(lower_frame, text="COMPILE", state=DISABLED, command=compile)
-btn_compile.grid(column=0, row=1)
+txt_list = Text(lower_frame)
+txt_list.place(relwidth=0.9, relheight=0.9)
 
-# lbl_files = Label(lower_frame, text='')
-# lbl_files.grid(column=1, row=2)
-
-# thang
-scrollbar = Scrollbar(root)
-scrollbar.pack( side = RIGHT, fill = Y )
-
-file_list = Listbox(root, yscrollcommand = scrollbar.set )
-file_list.pack( side = RIGHT, fill = BOTH )
-scrollbar.config( command = file_list.yview )
+# scrollbars
+hbar=Scrollbar(root, orient=HORIZONTAL)
+hbar.pack(side=BOTTOM, fill=X)
+hbar.config(command=txt_list.xview)
+vbar=Scrollbar(root, orient=VERTICAL)
+vbar.pack(side=RIGHT, fill=Y)
+vbar.config(command=txt_list.yview)
 
 root.mainloop()
-
