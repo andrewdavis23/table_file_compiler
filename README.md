@@ -1,11 +1,9 @@
-# csv_compiler
-This tool compiles a folder of CSV files into a single file.  Query optional.
+## Program:
+This tool compiles text, Excel, and CSV files containing similar tables into one file.
 
-I'm going to work on making this into a simple GUI application.
+## Notes:
+There was a bug within the pd.read_excel function:  "Workbook contains no default style, apply openpyxl's default." Openpyxl is the engine that reads .xlxs files.  This seems to be working now.
 
-Was originally intended to append Excel files, but there is a bug within the pd.read_excel function
-"Workbook contains no default style, apply openpyxl's default"
-Openpyxl is the engine that reads .xlxs files
-Solution was to convert to another Excel file type (one that uses a different engine) or CSV
-
-This uses a module called progressbar2 to display a loading bar, percentage and estimated time for compiling CSV files. Might be a little bit buggy.
+## Future adds:
+SQL query window
+Append tables on matching column names. exclude excess columns
