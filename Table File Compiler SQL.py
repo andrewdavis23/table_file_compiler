@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 import pandas as pd
 from pandasql import sqldf
+import os
 
 #initialize sql environment
 pysqldf = lambda q: sqldf(q, globals())
@@ -112,13 +113,22 @@ def check_ready():
         btn_clear['state'] = NORMAL
         if all_data.shape[0] > 0:
             btn_save['state'] = NORMAL
+            btn_run_SQL['state'] = NORMAL
+            btn_clear_SQL['state'] = NORMAL
+            btn_export_results['state'] = NORMAL
         else:
             btn_save['state'] = DISABLED
+            btn_run_SQL['state'] = DISABLED
+            btn_clear_SQL['state'] = DISABLED
+            btn_export_results['state'] = DISABLED
 
     else:
         btn_compile['state'] = DISABLED
         btn_clear['state'] = DISABLED
         btn_save['state'] = DISABLED
+        btn_run_SQL['state'] = DISABLED
+        btn_clear_SQL['state'] = DISABLED
+        btn_export_results['state'] = DISABLED
 
 def save_file():
     global all_data
@@ -144,10 +154,10 @@ def clear_SQL():
     query_box.config(state=DISABLED)
 
 def export_results():
-    pass
-
-def copy_results():
-    pass
+    global result
+    fn = filedialog.asksaveasfilename(defaultextension=".xlsx")
+    result.to_excel(fn, index=False)
+    os.system('start EXCEL.EXE "{}""'.format(fn))
 
 # window
 root = Tk()
@@ -172,17 +182,14 @@ SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
 result_box = Text(SQL_frame, padx=5, pady=3)
 result_box.place(relx=0, rely=0.5, relwidth=1, relheight=0.5)
 
-btn_run_SQL = Button(SQL_button_frame, text="Run", command=run_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_run_SQL = Button(SQL_button_frame, text="Run", state=DISABLED, command=run_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_run_SQL.pack(side='left', expand=True)
 
-btn_clear_SQL = Button(SQL_button_frame, text="Clear", command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_clear_SQL = Button(SQL_button_frame, text="Clear", state=DISABLED, command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_clear_SQL.pack(side='left', expand=True)
 
-btn_export_results = Button(SQL_button_frame, text="Export", command=export_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_export_results = Button(SQL_button_frame, text="Export", state=DISABLED, command=export_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_export_results.pack(side='left', expand=True)
-
-btn_copy_results = Button(SQL_button_frame, text="Copy", command=copy_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
-btn_copy_results.pack(side='left', expand=True)
 
 # compiler
 upper_frame = Frame(compiler_frame, bg=theme.frm, bd=5)
