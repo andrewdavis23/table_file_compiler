@@ -3,6 +3,7 @@ from tkinter import filedialog
 import pandas as pd
 from pandasql import sqldf
 import os
+from io import StringIO
 
 #initialize sql environment
 pysqldf = lambda q: sqldf(q, globals())
@@ -12,8 +13,7 @@ all_data = pd.DataFrame()
 result = pd.DataFrame()
 file_directs = []
 file_list = ''
-
-color_mode = 1
+headers_bool = True
 
 class theme():
     btn_font = 'bold'
@@ -21,13 +21,14 @@ class theme():
     btn = 'orange'
     frm = 'gray15'
     txtfg = 'pink'
-    txtbg = 'gray6'
+    txtbg = 'gray12'
     txt = '#44D62C' #neon green
     btntxt = '#4D4DFF' #neon blue
     btnbg = 'gray12'
     btnactbg = 'gray12'
     btnactfnt = '#FFAD00' #neon orange
     scrllbg = 'pink'
+    courser = '#D22730'
 
 # select files and display file names in window
 def open_file():
@@ -69,6 +70,9 @@ def compile():
     # plan: make it append on matching column names. exclude excess columns
     global file_directs
     global all_data
+    global headers_bool
+    all_data = pd.DataFrame()
+
     msg = 'Compiled\n'   
 
     for f in file_directs:
@@ -77,25 +81,21 @@ def compile():
 
         if file_ext == 'txt' : 
             temp_df = pd.read_csv(f, delimiter='\t')
-            s = temp_df.shape
-            msg += '{}\n  {} rows    {} cols\n'.format(file_name,s[0],s[1])
+            all_data = all_data.append(temp_df, ignore_index=True)
         elif file_ext == 'xlsx' : 
             temp_df = pd.read_excel(f)
-            s = temp_df.shape
-            msg += '{}\n  {} rows    {} cols\n'.format(file_name,s[0],s[1])
+            all_data = all_data.append(temp_df, ignore_index=True)
         elif file_ext == 'csv' : 
             temp_df = pd.read_csv(f)
-            s = temp_df.shape
-            msg += '{}\n  {} rows    {} cols\n'.format(file_name,s[0],s[1])
-        else: msg += '\nError reading {}\n   File extension not .txt, .xlsx or .csv'
-
-        all_data = all_data.append(temp_df, ignore_index=True)
+            all_data = all_data.append(temp_df, ignore_index=True)
+        else: msg += '\nError reading {}\n   File extension not .txt, .xlsx or .csv\n'
 
     if len(query_box.get("1.0", END)) <= 1:
         query_box.insert(END, 'SELECT *\nFROM all_data')
     
-    ads = all_data.shape
-    msg += 'Compilation\n   {} rows    {} cols\n'.format(ads[0],ads[1])
+    buffer = StringIO()
+    all_data.info(buf=buffer)
+    msg += '\n'+buffer.getvalue()
 
     check_ready()
 
@@ -114,12 +114,11 @@ def check_ready():
         if all_data.shape[0] > 0:
             btn_save['state'] = NORMAL
             btn_run_SQL['state'] = NORMAL
-            btn_clear_SQL['state'] = NORMAL
             btn_export_results['state'] = NORMAL
+            btn_clear_SQL['state'] = NORMAL
         else:
             btn_save['state'] = DISABLED
             btn_run_SQL['state'] = DISABLED
-            btn_clear_SQL['state'] = DISABLED
             btn_export_results['state'] = DISABLED
 
     else:
@@ -127,7 +126,6 @@ def check_ready():
         btn_clear['state'] = DISABLED
         btn_save['state'] = DISABLED
         btn_run_SQL['state'] = DISABLED
-        btn_clear_SQL['state'] = DISABLED
         btn_export_results['state'] = DISABLED
 
 def save_file():
@@ -144,14 +142,18 @@ def run_SQL():
     global result
 
     query = query_box.get("1.0", END)
-    result = pysqldf(query)
+    try:
+        result = pysqldf(query)
+    except BaseException as em:
+        result = em
 
+    result_box.config(state=NORMAL)
+    result_box.delete("1.0", END)
     result_box.insert(END, result)
+    result_box.config(state=DISABLED)
    
 def clear_SQL():
-    query_box.config(state=NORMAL)
     query_box.delete('1.0', END)
-    query_box.config(state=DISABLED)
 
 def export_results():
     global result
@@ -162,44 +164,48 @@ def export_results():
 # window
 root = Tk()
 root.title("Flat File Database Analyzer")
-root.geometry('700x377')
+root.geometry('987x610')
 root.configure(bg=theme.winbg)
 root.attributes('-alpha', 0.90)
 
-compiler_frame = Frame(root, bg='red', bd=5)
+compiler_frame = Frame(root, bg=theme.frm, bd=5)
 compiler_frame.place(relx=0.5, rely=0, relwidth=0.5, relheight=1)
 
-# SQL
-SQL_frame = Frame(root, bg='blue', bd=5)
+SQL_frame = Frame(root, bg=theme.frm, bd=5)
 SQL_frame.place(relx=0, rely=0, relwidth=0.5, relheight=1)
 
-query_box = Text(SQL_frame, padx=5, pady=3)
+# SQL (left side)
+query_box = Text(SQL_frame, insertbackground=theme.courser, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt, padx=5, pady=3)
 query_box.place(relx=0, rely=0, relwidth=1, relheight=0.4)
 
-SQL_button_frame = Frame(SQL_frame, bg='green', bd=5)
+SQL_button_frame = Frame(SQL_frame, bg=theme.frm, bd=5)
 SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
 
-result_box = Text(SQL_frame, padx=5, pady=3)
+result_box = Text(SQL_frame, state=DISABLED, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt, padx=5, pady=3)
 result_box.place(relx=0, rely=0.5, relwidth=1, relheight=0.5)
 
-btn_run_SQL = Button(SQL_button_frame, text="Run", state=DISABLED, command=run_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_run_SQL = Button(SQL_button_frame, text="Run SQL", state=DISABLED, command=run_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_run_SQL.pack(side='left', expand=True)
 
-btn_clear_SQL = Button(SQL_button_frame, text="Clear", state=DISABLED, command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_clear_SQL = Button(SQL_button_frame, text="Clear SQL", state=DISABLED, command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_clear_SQL.pack(side='left', expand=True)
 
-btn_export_results = Button(SQL_button_frame, text="Export", state=DISABLED, command=export_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_export_results = Button(SQL_button_frame, text="Export Output", state=DISABLED, command=export_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_export_results.pack(side='left', expand=True)
 
-# compiler
+# compiler (right side)
 upper_frame = Frame(compiler_frame, bg=theme.frm, bd=5)
-upper_frame.place(relx=0, rely=0, relwidth=1, relheight=0.2)
+upper_frame.place(relx=0, rely=0, relwidth=1, relheight=0.1)
 
 lower_frame = Frame(compiler_frame, bg=theme.frm, bd=5)
-lower_frame.place(relx=0, rely=0.2, relwidth=1, relheight=0.8)
+lower_frame.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
 
 btn_open_file = Button(upper_frame, text="Select", command=open_file, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_open_file.pack(side='left', expand=True)
+
+check_header = Checkbutton(upper_frame, text="Contains\nHeaders", variable=headers_bool, onvalue=True, offvalue=False, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+check_header.select()
+check_header.pack(side='left')
 
 btn_compile = Button(upper_frame, text="Compile", state=DISABLED, command=compile, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_compile.pack(side='left', expand=True)
