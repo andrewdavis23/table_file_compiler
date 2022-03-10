@@ -13,7 +13,7 @@ all_data = pd.DataFrame()
 result = pd.DataFrame()
 file_directs = []
 file_list = ''
-headers_bool = True
+header_val = 0
 
 class theme():
     btn_font = 'bold'
@@ -70,8 +70,9 @@ def compile():
     # plan: make it append on matching column names. exclude excess columns
     global file_directs
     global all_data
-    global headers_bool
+    global header_val
     all_data = pd.DataFrame()
+    header_rn = int(header_row.get("1.0", END))
 
     msg = 'Compiled\n'   
 
@@ -80,7 +81,7 @@ def compile():
         file_ext = file_name.split('.')[-1]
 
         if file_ext == 'txt' : 
-            temp_df = pd.read_csv(f, delimiter='\t')
+            temp_df = pd.read_csv(f, delimiter='\t', header=header_rn)
             all_data = all_data.append(temp_df, ignore_index=True)
         elif file_ext == 'xlsx' : 
             temp_df = pd.read_excel(f)
@@ -128,6 +129,16 @@ def check_ready():
         btn_run_SQL['state'] = DISABLED
         btn_export_results['state'] = DISABLED
 
+    print('running check_ready...')
+    print('header_bool='+str(header_bool.get()))
+        
+    if header_bool.get():
+        header_row.config(state = NORMAL, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt)
+        header_label.config(fg=theme.btntxt)
+    else:
+        header_row.config(state = DISABLED, fg='black', bg='black', foreground='black')
+        header_label.config(fg='gray12')
+
 def save_file():
     global all_data
 
@@ -164,7 +175,7 @@ def export_results():
 # window
 root = Tk()
 root.title("Flat File Database Analyzer")
-root.geometry('987x610')
+root.geometry('1200x600')
 root.configure(bg=theme.winbg)
 root.attributes('-alpha', 0.90)
 
@@ -203,9 +214,20 @@ lower_frame.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
 btn_open_file = Button(upper_frame, text="Select", command=open_file, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_open_file.pack(side='left', expand=True)
 
-check_header = Checkbutton(upper_frame, text="Contains\nHeaders", variable=headers_bool, onvalue=True, offvalue=False, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+header_bool = BooleanVar()
+check_header = Checkbutton(upper_frame, text="Contains\nHeaders", variable=header_bool, command=check_ready, onvalue=True, offvalue=False, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 check_header.select()
-check_header.pack(side='left')
+check_header.pack(side='left', expand=True)
+
+header_frame = Frame(upper_frame, bg=theme.btnbg, bd=5)
+header_frame.pack(side='left', expand=True)
+
+header_label = Label(header_frame, text = 'Header Row #:', fg=theme.btntxt, bg=theme.btnbg, foreground=theme.btntxt)
+header_label.pack(side='top', expand=True)
+
+header_row = Text(header_frame, height=1, width=2, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt)
+header_row.pack(side='top')
+header_row.insert(END, '0')
 
 btn_compile = Button(upper_frame, text="Compile", state=DISABLED, command=compile, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_compile.pack(side='left', expand=True)
