@@ -72,27 +72,37 @@ def compile():
     global all_data
     global header_val
     all_data = pd.DataFrame()
-    header_rn = int(header_row.get("1.0", END))
+    msg = ''
+    if header_bool.get():
+        if int(header_bool.get()) <= 0:
+            header_rn = 1
+        else:
+            header_rn = int(header_row.get("1.0", END)) - 1
+    else:
+        header_rn = None
 
-    msg = 'Compiled\n'   
+    if delim_bool.get():
+        delim = delim_char.get("1.0", END)[:-1]
+    else:
+        delim = '\t'   
 
     for f in file_directs:
         file_name = f.split('/')[-1]
         file_ext = file_name.split('.')[-1]
 
         if file_ext == 'txt' : 
-            temp_df = pd.read_csv(f, delimiter='\t', header=header_rn)
+            temp_df = pd.read_csv(f, sep=delim, header=header_rn, engine='python')
             all_data = all_data.append(temp_df, ignore_index=True)
         elif file_ext == 'xlsx' : 
-            temp_df = pd.read_excel(f)
+            temp_df = pd.read_excel(f, engine='python')
             all_data = all_data.append(temp_df, ignore_index=True)
         elif file_ext == 'csv' : 
-            temp_df = pd.read_csv(f)
+            temp_df = pd.read_csv(f, engine='python')
             all_data = all_data.append(temp_df, ignore_index=True)
         else: msg += '\nError reading {}\n   File extension not .txt, .xlsx or .csv\n'
 
     if len(query_box.get("1.0", END)) <= 1:
-        query_box.insert(END, 'SELECT *\nFROM all_data')
+        query_box.insert(END, 'SELECT *\nFROM all_data a')
     
     buffer = StringIO()
     all_data.info(buf=buffer)
@@ -128,16 +138,18 @@ def check_ready():
         btn_save['state'] = DISABLED
         btn_run_SQL['state'] = DISABLED
         btn_export_results['state'] = DISABLED
-
-    print('running check_ready...')
-    print('header_bool='+str(header_bool.get()))
         
     if header_bool.get():
         header_row.config(state = NORMAL, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt)
-        header_label.config(fg=theme.btntxt)
+        header_row_label.config(fg=theme.btntxt)
     else:
         header_row.config(state = DISABLED, fg='black', bg='black', foreground='black')
-        header_label.config(fg='gray12')
+        header_row_label.config(fg='gray12')
+
+    if delim_bool.get():
+        delim_char.config(state = NORMAL, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt)
+    else:
+        delim_char.config(state = DISABLED, fg='black', bg='black', foreground='black')
 
 def save_file():
     global all_data
@@ -152,11 +164,15 @@ def run_SQL():
     global all_data
     global result
 
+    # print(all_data)
+
     query = query_box.get("1.0", END)
     try:
         result = pysqldf(query)
     except BaseException as em:
         result = em
+
+    # print(result)
 
     result_box.config(state=NORMAL)
     result_box.delete("1.0", END)
@@ -192,7 +208,7 @@ query_box.place(relx=0, rely=0, relwidth=1, relheight=0.4)
 SQL_button_frame = Frame(SQL_frame, bg=theme.frm, bd=5)
 SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
 
-result_box = Text(SQL_frame, state=DISABLED, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt, padx=5, pady=3)
+result_box = Text(SQL_frame, state=DISABLED, wrap='none', fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt, padx=5, pady=3)
 result_box.place(relx=0, rely=0.5, relwidth=1, relheight=0.5)
 
 btn_run_SQL = Button(SQL_button_frame, text="Run SQL", state=DISABLED, command=run_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
@@ -201,33 +217,46 @@ btn_run_SQL.pack(side='left', expand=True)
 btn_clear_SQL = Button(SQL_button_frame, text="Clear SQL", state=DISABLED, command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_clear_SQL.pack(side='left', expand=True)
 
-btn_export_results = Button(SQL_button_frame, text="Export Output", state=DISABLED, command=export_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_export_results = Button(SQL_button_frame, text="Export Results", state=DISABLED, command=export_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_export_results.pack(side='left', expand=True)
 
 # compiler (right side)
 upper_frame = Frame(compiler_frame, bg=theme.frm, bd=5)
-upper_frame.place(relx=0, rely=0, relwidth=1, relheight=0.1)
+upper_frame.place(relx=0, rely=0, relwidth=1, relheight=0.13)
 
 lower_frame = Frame(compiler_frame, bg=theme.frm, bd=5)
-lower_frame.place(relx=0, rely=0.1, relwidth=1, relheight=0.9)
+lower_frame.place(relx=0, rely=0.13, relwidth=1, relheight=0.87)
 
 btn_open_file = Button(upper_frame, text="Select", command=open_file, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_open_file.pack(side='left', expand=True)
 
-header_bool = BooleanVar()
-check_header = Checkbutton(upper_frame, text="Contains\nHeaders", variable=header_bool, command=check_ready, onvalue=True, offvalue=False, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
-check_header.select()
-check_header.pack(side='left', expand=True)
-
 header_frame = Frame(upper_frame, bg=theme.btnbg, bd=5)
 header_frame.pack(side='left', expand=True)
 
-header_label = Label(header_frame, text = 'Header Row #:', fg=theme.btntxt, bg=theme.btnbg, foreground=theme.btntxt)
-header_label.pack(side='top', expand=True)
+header_bool = BooleanVar()
+header_check = Checkbutton(header_frame, text="Header", variable=header_bool, command=check_ready, onvalue=True, offvalue=False, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+header_check.select()
+header_check.pack(side='top')
 
-header_row = Text(header_frame, height=1, width=2, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt)
-header_row.pack(side='top')
-header_row.insert(END, '0')
+header_row_frame = Frame(header_frame, bg=theme.btnbg)
+header_row_frame.pack(side='bottom')
+
+header_row_label = Label(header_row_frame, text = 'Row:', fg=theme.btntxt, bg=theme.btnbg, foreground=theme.btntxt)
+header_row_label.pack(side='left')
+
+header_row = Text(header_row_frame, insertbackground=theme.courser, height=1, width=2, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt)
+header_row.pack(side='left')
+header_row.insert(END, '1')
+
+delim_frame = Frame(upper_frame, bg=theme.btnbg, bd=5)
+delim_frame.pack(side='left')
+
+delim_bool = BooleanVar()
+delim_check = Checkbutton(delim_frame, text="Delim.", variable=delim_bool, command=check_ready, onvalue=True, offvalue=False, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+delim_check.pack(side='top')
+
+delim_char = Text(delim_frame, height=1, width=2, insertbackground=theme.courser, fg='black', bg='black', foreground='black')
+delim_char.pack(side='bottom')
 
 btn_compile = Button(upper_frame, text="Compile", state=DISABLED, command=compile, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_compile.pack(side='left', expand=True)
@@ -242,10 +271,10 @@ txt_list = Text(lower_frame, bg=theme.txtbg)
 txt_list.pack(expand=True, fill='both')
 
 # # scrollbars
-# hbar=Scrollbar(root, orient=HORIZONTAL, bg=theme.scrllbg)
+# hbar=Scrollbar(result_box, orient=HORIZONTAL, bg=theme.scrllbg)
 # hbar.pack(side=BOTTOM, fill=X)
 # hbar.config(command=txt_list.xview)
-# vbar=Scrollbar(root, orient=VERTICAL, bg=theme.scrllbg)
+# vbar=Scrollbar(result_box, orient=VERTICAL, bg=theme.scrllbg)
 # vbar.pack(side=RIGHT, fill=Y)
 # vbar.config(command=txt_list.yview)
 
