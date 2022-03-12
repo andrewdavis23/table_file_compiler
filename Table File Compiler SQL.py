@@ -13,6 +13,7 @@ all_data = pd.DataFrame()
 result = pd.DataFrame()
 file_directs = []
 file_list = ''
+query_file_dir = ''
 header_val = 0
 
 class theme():
@@ -162,25 +163,59 @@ def save_file():
 
 def run_SQL():
     global all_data
-    global result
+    global result  
 
-    # print(all_data)
+    try:
+        query = query_box.selection_get()
+    except:
+        query = query_box.get("1.0", END)
 
-    query = query_box.get("1.0", END)
     try:
         result = pysqldf(query)
     except BaseException as em:
         result = em
-
-    # print(result)
 
     result_box.config(state=NORMAL)
     result_box.delete("1.0", END)
     result_box.insert(END, result)
     result_box.config(state=DISABLED)
    
+def load_SQL():
+    global query_file_dir
+    clear_SQL()
+    query_file_dir = filedialog.askopenfilename(initialdir=r"C:\Python Programs\Table Compiler\SQLite Queries")
+    query_file_label['text'] = query_file_dir
+
+    with open(query_file_dir, "r") as myfile:
+        query=myfile.read()
+
+    query_box.insert(END, query)
+
+def save_SQL():
+    global query_file_dir
+
+    try:
+        query = query_box.selection_get()
+    except:
+        query = query_box.get("1.0", END)
+
+    if query_file_dir == '':
+        save_as_SQL()
+    else:
+        with open(query_file_dir, 'w') as output_file:
+            output_file.write(query)
+
+def save_as_SQL():
+    global query_file_dir
+    try:
+        query = query_box.selection_get()
+    except:
+        query = query_box.get("1.0", END)
+    pass
+
 def clear_SQL():
     query_box.delete('1.0', END)
+    query_file_label['text']=''
 
 def export_results():
     global result
@@ -196,14 +231,17 @@ root.configure(bg=theme.winbg)
 root.attributes('-alpha', 0.90)
 
 compiler_frame = Frame(root, bg=theme.frm, bd=5)
-compiler_frame.place(relx=0.5, rely=0, relwidth=0.5, relheight=1)
+compiler_frame.place(relx=0.55, rely=0, relwidth=0.45, relheight=1)
 
 SQL_frame = Frame(root, bg=theme.frm, bd=5)
-SQL_frame.place(relx=0, rely=0, relwidth=0.5, relheight=1)
+SQL_frame.place(relx=0, rely=0, relwidth=0.55, relheight=1)
 
 # SQL (left side)
+query_file_label = Label(SQL_frame, text='', anchor='w', fg=theme.btntxt, bg=theme.btnbg, foreground=theme.btntxt)
+query_file_label.place(relx=0, rely=0, relwidth=1, relheight=0.03)
+
 query_box = Text(SQL_frame, insertbackground=theme.courser, fg=theme.txtfg, bg=theme.txtbg, foreground=theme.txt, padx=5, pady=3)
-query_box.place(relx=0, rely=0, relwidth=1, relheight=0.4)
+query_box.place(relx=0, rely=0.03, relwidth=1, relheight=0.37)
 
 SQL_button_frame = Frame(SQL_frame, bg=theme.frm, bd=5)
 SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
@@ -214,7 +252,16 @@ result_box.place(relx=0, rely=0.5, relwidth=1, relheight=0.5)
 btn_run_SQL = Button(SQL_button_frame, text="Run SQL", state=DISABLED, command=run_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_run_SQL.pack(side='left', expand=True)
 
-btn_clear_SQL = Button(SQL_button_frame, text="Clear SQL", state=DISABLED, command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_load_SQL = Button(SQL_button_frame, text="Load", state=NORMAL, command=load_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_load_SQL.pack(side='left', expand=True)
+
+btn_save_SQL = Button(SQL_button_frame, text="Save", state=NORMAL, command=save_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_save_SQL.pack(side='left', expand=True)
+
+btn_save_as_SQL = Button(SQL_button_frame, text="Save As", state=NORMAL, command=save_as_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_save_as_SQL.pack(side='left', expand=True)
+
+btn_clear_SQL = Button(SQL_button_frame, text="Clear SQL", state=NORMAL, command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_clear_SQL.pack(side='left', expand=True)
 
 btn_export_results = Button(SQL_button_frame, text="Export Results", state=DISABLED, command=export_results, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
