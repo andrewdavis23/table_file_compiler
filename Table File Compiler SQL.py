@@ -8,13 +8,12 @@ from io import StringIO
 #initialize sql environment
 pysqldf = lambda q: sqldf(q, globals())
 
-# final dataframe, file paths
+# final dataframe, file paths, filename, SQL query directory, query results
 all_data = pd.DataFrame()
-result = pd.DataFrame()
 file_directs = []
 file_list = ''
 query_file_dir = ''
-header_val = 0
+result = pd.DataFrame()
 
 class theme():
     btn_font = 'bold'
@@ -39,7 +38,7 @@ def open_file():
     new_files = list(filedialog.askopenfilenames())
     file_directs.extend(new_files)
 
-    # add filenames to the tk list box
+    # add filenames to the GUI list box
     for i in new_files:
         fl = i.split('/')[-1] + '\n'
         file_list += fl
@@ -71,9 +70,10 @@ def compile():
     # plan: make it append on matching column names. exclude excess columns
     global file_directs
     global all_data
-    global header_val
     all_data = pd.DataFrame()
     msg = ''
+
+    # User selected header boolean and header row number
     if header_bool.get():
         if int(header_bool.get()) <= 0:
             header_rn = 1
@@ -82,32 +82,56 @@ def compile():
     else:
         header_rn = None
 
+    # delimiter boolean and delimiter character
     if delim_bool.get():
         delim = delim_char.get("1.0", END)[:-1]
     else:
         delim = '\t'   
 
+    # filename and column count
+    file_col_msg = '\n FILES LOADED:'
+    col_count = []
+
     for f in file_directs:
         file_name = f.split('/')[-1]
         file_ext = file_name.split('.')[-1]
 
+        # load, count column, create showing column count, filename, create list of column count
         if file_ext == 'txt' : 
             temp_df = pd.read_csv(f, sep=delim, header=header_rn, engine='python')
+            cc = temp_df.shape[1]
+            file_col_msg += str(cc) + ' ' + file_name + '\n'
+            col_count.append(cc)
             all_data = all_data.append(temp_df, ignore_index=True)
         elif file_ext == 'xlsx' : 
-            temp_df = pd.read_excel(f, engine='python')
+            temp_df = pd.read_excel(f)
+            cc = temp_df.shape[1]
+            file_col_msg += str(cc) + ' ' + file_name + '\n'
+            col_count.append(cc)            
             all_data = all_data.append(temp_df, ignore_index=True)
         elif file_ext == 'csv' : 
             temp_df = pd.read_csv(f, engine='python')
+            cc = temp_df.shape[1]
+            file_col_msg += str(cc) + ' ' + file_name + '\n'
+            col_count.append(cc)            
             all_data = all_data.append(temp_df, ignore_index=True)
-        else: msg += '\nError reading {}\n   File extension not .txt, .xlsx or .csv\n'
+        else: msg += '\nError reading {}\n   File extension not .txt, .xlsx or .csv\n'.format(file_name)
 
     if len(query_box.get("1.0", END)) <= 1:
         query_box.insert(END, 'SELECT *\nFROM all_data a')
+
+    # check that columns are all the same, then list data for message output
+    # PLAN: check for matching column names or data types
+    all_same = all(x == col_count[0] for x in col_count)
+    if not all_same:
+        file_col_msg = '** COLUMN COUNT MISMATCH **\n' + file_col_msg
     
+    # buf:  writable buffer, defaults to sys.stdout
     buffer = StringIO()
     all_data.info(buf=buffer)
     msg += '\n'+buffer.getvalue()
+
+    msg += file_col_msg
 
     check_ready()
 
@@ -189,6 +213,8 @@ def load_SQL():
     with open(query_file_dir, "r") as myfile:
         query=myfile.read()
 
+    btn_save_as_SQL['state'] = NORMAL
+
     query_box.insert(END, query)
 
 def save_SQL():
@@ -206,12 +232,18 @@ def save_SQL():
             output_file.write(query)
 
 def save_as_SQL():
-    global query_file_dir
     try:
         query = query_box.selection_get()
     except:
         query = query_box.get("1.0", END)
-    pass
+    
+    new_save = filedialog.asksaveasfile(defaultextension='.txt')
+    query_file_label['text'] = new_save.name
+
+    try:
+        new_save.write(query.rstrip())
+    except:
+        pass
 
 def clear_SQL():
     query_box.delete('1.0', END)
@@ -258,7 +290,7 @@ btn_load_SQL.pack(side='left', expand=True)
 btn_save_SQL = Button(SQL_button_frame, text="Save", state=NORMAL, command=save_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_save_SQL.pack(side='left', expand=True)
 
-btn_save_as_SQL = Button(SQL_button_frame, text="Save As", state=NORMAL, command=save_as_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
+btn_save_as_SQL = Button(SQL_button_frame, text="Save As", state=DISABLED, command=save_as_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
 btn_save_as_SQL.pack(side='left', expand=True)
 
 btn_clear_SQL = Button(SQL_button_frame, text="Clear SQL", state=NORMAL, command=clear_SQL, bg=theme.btnbg, fg=theme.btntxt, font=theme.btn_font, activebackground=theme.btnactbg, activeforeground=theme.btnactfnt)
