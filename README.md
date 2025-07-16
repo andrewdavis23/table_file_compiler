@@ -10,4 +10,5 @@ This tool compiles text, Excel, and CSV files containing similar tables into one
 There was a bug within the pd.read_excel function:  "Workbook contains no default style, apply openpyxl's default." Openpyxl is the engine that reads .xlxs files.  This seems to be working now.
 
 ## Future adds:
-Append tables on matching column names. exclude excess columns
+- Append tables on matching column names and exclude excess columns.
+- Currently doesn't work well for files where the head is not in row 1. It still combines the empty space above the header.
