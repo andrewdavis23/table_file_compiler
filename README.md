@@ -11,4 +11,4 @@ There was a bug within the pd.read_excel function:  "Workbook contains no defaul
 
 ## Future adds:
 - Append tables on matching column names and exclude excess columns.
-- Currently doesn't work well for files where the head is not in row 1. It still combines the empty space above the header.
+- Add a column for the title of each file
