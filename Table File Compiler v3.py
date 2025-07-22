@@ -65,7 +65,7 @@ def compile():
         if int(header_bool.get()) <= 0:
             header_rn = 1
         else:
-            header_rn = int(header_row.get("1.0", END)) - 1
+            header_rn = int(header_row.get()) - 1
     else:
         header_rn = None
 
@@ -85,7 +85,7 @@ def compile():
 
         # load, count column, create showing column count, filename, create list of column count
         if file_ext == 'txt' : 
-            temp_df = pd.read_csv(f, sep=delim, header=header_rn, engine='python')
+            temp_df = pd.read_csv(f, sep=delim, header=header_rn, engine='python', encoding='ISO-8859-1')
             cc = temp_df.shape[1]
             file_col_msg += str(cc) + ' ' + file_name + '\n'
             col_count.append(cc)
@@ -155,7 +155,6 @@ def check_ready():
         header_row.config(state = NORMAL)
     else:
         header_row.config(state = DISABLED)
-        header_row_label.config(fg='gray12')
 
     if delim_bool.get():
         delim_char.config(state = NORMAL)
@@ -259,7 +258,7 @@ query_file_label.place(relx=0, rely=0, relwidth=1, relheight=0.03)
 query_box = Text(SQL_frame, padx=5, pady=3)
 query_box.place(relx=0, rely=0.03, relwidth=1, relheight=0.37)
 
-SQL_button_frame = tb.Frame(SQL_frame, bootstyle=PRIMARY)
+SQL_button_frame = tb.Frame(SQL_frame, bootstyle=SECONDARY)
 SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
 
 result_box = Text(SQL_frame, state=DISABLED, wrap='none', padx=5, pady=3)
@@ -284,7 +283,7 @@ btn_export_results = tb.Button(SQL_button_frame, text="Export Results", state=DI
 btn_export_results.pack(side='left', expand=True)
 
 # compiler (right side)
-upper_frame = tb.Frame(compiler_frame, bootstyle=PRIMARY)
+upper_frame = tb.Frame(compiler_frame, bootstyle=SECONDARY)
 upper_frame.place(relx=0, rely=0, relwidth=1, relheight=0.13)
 
 lower_frame = tb.Frame(compiler_frame, bootstyle=PRIMARY)
@@ -296,29 +295,28 @@ btn_open_file.pack(side='left', expand=True)
 header_frame = tb.Frame(upper_frame, bootstyle=PRIMARY)
 header_frame.pack(side='left', expand=True)
 
-header_bool = tb.BooleanVar()
-header_check = tb.Checkbutton(header_frame, text="Header", variable=header_bool, command=check_ready, onvalue=True, offvalue=False, bootstyle=PRIMARY)
 header_bool = tb.BooleanVar(value=True)
+header_check = tb.Checkbutton(header_frame, text="Header", variable=header_bool, command=check_ready, bootstyle=SUCCESS)
 header_check.pack(side='top')
 
-header_row_frame = tb.Frame(header_frame, bootstyle=PRIMARY)
+header_row_frame = tb.Frame(header_frame, bootstyle=SECONDARY)
 header_row_frame.pack(side='bottom')
 
-header_row_label = tb.Label(header_row_frame, text = 'Row:', bootstyle=PRIMARY)
+header_row_label = tb.Label(header_row_frame, text = 'Row:', bootstyle=SUCCESS)
 header_row_label.pack(side='left')
 
-header_row = Text(header_row_frame, height=1, width=2)
+header_row = tb.Entry(header_row_frame, bootstyle=SUCCESS, width=3)
 header_row.pack(side='left')
 header_row.insert(END, '1')
 
-delim_frame = tb.Frame(upper_frame, bootstyle=PRIMARY)
+delim_frame = tb.Frame(upper_frame, bootstyle=SECONDARY)
 delim_frame.pack(side='left')
 
 delim_bool = tb.BooleanVar()
-delim_check = tb.Checkbutton(delim_frame, text="Delim.", variable=delim_bool, command=check_ready, onvalue=True, offvalue=False, bootstyle=PRIMARY)
+delim_check = tb.Checkbutton(delim_frame, text="Delim.", variable=delim_bool, command=check_ready, onvalue=True, offvalue=False, bootstyle=SUCCESS)
 delim_check.pack(side='top')
 
-delim_char = Text(delim_frame, height=1, width=2)
+delim_char = tb.Entry(delim_frame, bootstyle=SUCCESS, width=3)
 delim_char.pack(side='bottom')
 
 btn_compile = tb.Button(upper_frame, text="Compile", state=DISABLED, command=compile, bootstyle=PRIMARY)
