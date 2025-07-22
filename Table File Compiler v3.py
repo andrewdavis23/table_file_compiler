@@ -61,13 +61,14 @@ def compile():
     msg = ''
 
     # User selected header boolean and header row number
-    if header_bool.get():
-        if int(header_bool.get()) <= 0:
-            header_rn = 1
+    try:
+        if header_bool.get():
+            value = header_row.get().strip()
+            header_rn = int(value) - 1 if value else 0
         else:
-            header_rn = int(header_row.get()) - 1
-    else:
-        header_rn = None
+            header_rn = None
+    except ValueError:
+        header_rn = 0  # Default to first row if invalid input
 
     # delimiter boolean and delimiter character
     if delim_bool.get():
@@ -91,13 +92,13 @@ def compile():
             col_count.append(cc)
             all_data = pd.concat([all_data, temp_df], ignore_index=True)
         elif file_ext == 'xlsx' : 
-            temp_df = pd.read_excel(f)
+            temp_df = pd.read_excel(f, header=header_rn)
             cc = temp_df.shape[1]
             file_col_msg += str(cc) + ' ' + file_name + '\n'
             col_count.append(cc)            
             all_data = pd.concat([all_data, temp_df], ignore_index=True)
         elif file_ext == 'csv' : 
-            temp_df = pd.read_csv(f, engine='python')
+            temp_df = pd.read_csv(f, header=header_rn, engine='python', encoding='ISO-8859-1')
             cc = temp_df.shape[1]
             file_col_msg += str(cc) + ' ' + file_name + '\n'
             col_count.append(cc)            
@@ -167,7 +168,7 @@ def save_file():
     out_path = filedialog.asksaveasfile(mode='w', defaultextension=".txt")
     if out_path is None:
         return
-    all_data.to_csv(out_path, index=False, line_terminator='\n', sep='\t')
+    all_data.to_csv(out_path, index=False, lineterminator='\n', sep='\t')
     out_path.close()
 
 def run_SQL():
