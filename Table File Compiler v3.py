@@ -77,8 +77,8 @@ def compile():
         delim = '\t'   
 
     # filename and column count
-    file_col_msg = '\n FILES LOADED:\n'
-    col_count = []
+    file_col_msg = '\n FILES LOADED (col count / filename):\n'
+    col_count = [] # for checking that all files have the same number of columns
 
     for f in file_directs:
         file_name = f.split('/')[-1]
@@ -90,18 +90,21 @@ def compile():
             cc = temp_df.shape[1]
             file_col_msg += str(cc) + ' ' + file_name + '\n'
             col_count.append(cc)
+            temp_df['filename'] = file_name  # Add filename column
             all_data = pd.concat([all_data, temp_df], ignore_index=True)
         elif file_ext == 'xlsx' : 
             temp_df = pd.read_excel(f, header=header_rn)
             cc = temp_df.shape[1]
             file_col_msg += str(cc) + ' ' + file_name + '\n'
-            col_count.append(cc)            
+            col_count.append(cc)
+            temp_df['filename'] = file_name            
             all_data = pd.concat([all_data, temp_df], ignore_index=True)
         elif file_ext == 'csv' : 
             temp_df = pd.read_csv(f, header=header_rn, engine='python', encoding='ISO-8859-1')
             cc = temp_df.shape[1]
             file_col_msg += str(cc) + ' ' + file_name + '\n'
-            col_count.append(cc)            
+            col_count.append(cc)    
+            temp_df['filename'] = file_name        
             all_data = pd.concat([all_data, temp_df], ignore_index=True)
         else: msg += '\nError reading {}\n   File extension not .txt, .xlsx or .csv\n'.format(file_name)
 
@@ -331,13 +334,5 @@ btn_clear.pack(side='left', expand=True)
 
 txt_list = Text(lower_frame)
 txt_list.pack(expand=True, fill='both')
-
-# # scrollbars
-# hbar=Scrollbar(result_box, orient=HORIZONTAL, bg=theme.scrllbg)
-# hbar.pack(side=BOTTOM, fill=X)
-# hbar.config(command=txt_list.xview)
-# vbar=Scrollbar(result_box, orient=VERTICAL, bg=theme.scrllbg)
-# vbar.pack(side=RIGHT, fill=Y)
-# vbar.config(command=txt_list.yview)
 
 root.mainloop()
