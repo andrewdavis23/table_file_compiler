@@ -11,4 +11,3 @@ There was a bug within the pd.read_excel function:  "Workbook contains no defaul
 
 ## Future adds:
 - Append tables on matching column names and exclude excess columns.
-- Add a column for the title of each file
