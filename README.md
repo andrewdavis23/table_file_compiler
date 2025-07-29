@@ -11,3 +11,5 @@ There was a bug within the pd.read_excel function:  "Workbook contains no defaul
 
 ## Future adds:
 - Append tables on matching column names and exclude excess columns.
+- SQL syntax highlighting
+- Save as Excel file or text
