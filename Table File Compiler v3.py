@@ -6,6 +6,7 @@ import pandas as pd
 from pandasql import sqldf
 import os
 from io import StringIO
+import re
 
 #initialize sql environment
 pysqldf = lambda q: sqldf(q, globals())
@@ -16,6 +17,115 @@ file_directs = []
 file_list = ''
 query_file_dir = ''
 result = pd.DataFrame()
+
+SQL_KEYWORDS = {
+    'ABORT','ACTION','ADD','AFTER','ALL','ALTER','ALWAYS','ANALYZE','AND','AS','ASC','ATTACH',
+    'AUTOINCREMENT','BEFORE','BEGIN','BETWEEN','BY','CASCADE','CASE','CAST','CHECK','COLLATE',
+    'COLUMN','COMMIT','CONFLICT','CONSTRAINT','CREATE','CROSS','CURRENT','CURRENT_DATE',
+    'CURRENT_TIME','CURRENT_TIMESTAMP','DATABASE','DEFAULT','DEFERRABLE','DEFERRED','DELETE',
+    'DESC','DETACH','DISTINCT','DO','DROP','EACH','ELSE','END','ESCAPE','EXCEPT','EXCLUDE',
+    'EXCLUSIVE','EXISTS','EXPLAIN','FAIL','FILTER','FIRST','FOLLOWING','FOR','FOREIGN','FROM',
+    'FULL','GENERATED','GLOB','GROUP','GROUPS','HAVING','IF','IGNORE','IMMEDIATE','IN','INDEX',
+    'INDEXED','INITIALLY','INNER','INSERT','INSTEAD','INTERSECT','INTO','IS','ISNULL','JOIN',
+    'KEY','LAST','LEFT','LIKE','LIMIT','MATCH','MATERIALIZED','NATURAL','NO','NOT','NOTHING',
+    'NOTNULL','NULL','NULLS','OF','OFFSET','ON','OR','ORDER','OTHERS','OUTER','OVER','PARTITION',
+    'PLAN','PRAGMA','PRECEDING','PRIMARY','QUERY','RAISE','RANGE','RECURSIVE','REFERENCES',
+    'REGEXP','REINDEX','RELEASE','RENAME','REPLACE','RESTRICT','RETURNING','RIGHT','ROLLBACK',
+    'ROW','ROWS','SAVEPOINT','SELECT','SET','TABLE','TEMP','TEMPORARY','THEN','TIES','TO',
+    'TRANSACTION','TRIGGER','UNBOUNDED','UNION','UNIQUE','UPDATE','USING','VACUUM','VALUES',
+    'VIEW','VIRTUAL','WHEN','WHERE','WINDOW','WITH','WITHOUT'
+}
+
+SQL_DATATYPES = {'INTEGER', 'REAL', 'TEXT', 'BLOB', 'NULL'}
+
+SQL_SYSTEM_TABLES = {'SQLITE_MASTER'}
+
+SQL_FUNCTIONS = {
+    'ABS','CHANGES','CHAR','COALESCE','CONCAT','CONCAT_WS','FORMAT','GLOB','HEX','IF','IFNULL',
+    'IIF','INSTR','LAST_INSERT_ROWID','LENGTH','LIKE','LIKE','LIKELIHOOD','LIKELY','LOAD_EXTENSION',
+    'LOAD_EXTENSION','LOWER','LTRIM','LTRIM','MAX','MIN','NULLIF','OCTET_LENGTH','PRINTF','QUOTE',
+    'RANDOM','RANDOMBLOB','REPLACE','ROUND','ROUND','RTRIM','RTRIM','SIGN','SOUNDEX',
+    'SQLITE_COMPILEOPTION_GET','SQLITE_COMPILEOPTION_USED','SQLITE_OFFSET','SQLITE_SOURCE_ID',
+    'SQLITE_VERSION','SUBSTR','SUBSTR','SUBSTRING','SUBSTRING','TOTAL_CHANGES','TRIM','TRIM',
+    'TYPEOF','UNHEX','UNHEX','UNICODE','UNISTR','UNISTR_QUOTE','UNLIKELY','UPPER','ZEROBLOB',
+    'AVG','COUNT','COUNT','GROUP_CONCAT','GROUP_CONCAT','MAX','MIN','STRING_AGG','SUM','TOTAL',
+    'DATE','TIME','DATETIME','JULIANDAY','UNIXEPOCH','STRFTIME','DATETIME',
+}
+
+def highlight_sql(text_widget):
+    text = text_widget.get("1.0", "end-1c")
+
+    def is_in_comment(pos):
+        return any(start <= pos < end for start, end in comment_spans)
+
+    # Clear existing tags
+    for tag in ['keyword', 'string', 'comment', 'number', 'datatype', 'system', 'function']:
+        text_widget.tag_remove(tag, "1.0", "end")
+
+    # Match SQL comments
+    comment_spans = []
+    comment_pattern = re.compile(r'--.*?$|/\*.*?\*/', re.DOTALL | re.MULTILINE) #re.DOTALL allows . to match newlines
+    for match in comment_pattern.finditer(text):
+        start = f"1.0 + {match.start()} chars"
+        end = f"1.0 + {match.end()} chars"
+        text_widget.tag_add("comment", start, end)
+        comment_spans.append((match.start(), match.end()))
+
+    # Match single-quoted strings
+    for match in re.finditer(r"'(?:''|[^'])*'", text):
+        if is_in_comment(match.start()):
+            continue
+        start = f"1.0 + {match.start()} chars"
+        end = f"1.0 + {match.end()} chars"
+        text_widget.tag_add("string", start, end)
+
+    # Match numeric literals (integers, decimals, negatives)
+    for match in re.finditer(r'\b-?\d+(\.\d+)?\b', text):
+        if is_in_comment(match.start()):
+            continue
+        start = f"1.0 + {match.start()} chars"
+        end = f"1.0 + {match.end()} chars"
+        text_widget.tag_add("number", start, end)
+
+    # Match keywords
+    for match in re.finditer(r'\b\w+\b', text):
+        if is_in_comment(match.start()):
+            continue
+        word = match.group(0).upper()
+        if word in SQL_KEYWORDS:
+            start = f"1.0 + {match.start()} chars"
+            end = f"1.0 + {match.end()} chars"
+            text_widget.tag_add("keyword", start, end)
+
+    # Match function names followed by (
+    for match in re.finditer(r'\b\w+\b(?=\s*\()', text):
+        if is_in_comment(match.start()):
+            continue
+        word = match.group(0).upper()
+        if word in SQL_FUNCTIONS:
+            start = f"1.0 + {match.start()} chars"
+            end = f"1.0 + {match.end()} chars"
+            text_widget.tag_add("function", start, end)
+
+    # Match data types
+    for match in re.finditer(r'\b\w+\b', text):
+        if is_in_comment(match.start()):
+            continue
+        word = match.group(0).upper()
+        if word in SQL_DATATYPES:
+            start = f"1.0 + {match.start()} chars"
+            end = f"1.0 + {match.end()} chars"
+            text_widget.tag_add("datatype", start, end)
+
+    # Match system table names
+    for match in re.finditer(r'\b\w+\b', text):
+        if is_in_comment(match.start()):
+            continue
+        word = match.group(0).upper()
+        if word in SQL_SYSTEM_TABLES:
+            start = f"1.0 + {match.start()} chars"
+            end = f"1.0 + {match.end()} chars"
+            text_widget.tag_add("system", start, end)
 
 # select files and display file names in window
 def open_file():
@@ -245,7 +355,7 @@ def export_results():
     os.system('start EXCEL.EXE "{}""'.format(fn))
 
 # window
-root = tb.Window(themename="superhero")
+root = tb.Window(themename="darkly")
 root.title("Flat File Database Analyzer")
 root.geometry('1200x600')
 
@@ -259,8 +369,16 @@ SQL_frame.place(relx=0, rely=0, relwidth=0.55, relheight=1)
 query_file_label = tb.Label(SQL_frame, text='', anchor='w', bootstyle=PRIMARY)
 query_file_label.place(relx=0, rely=0, relwidth=1, relheight=0.03)
 
-query_box = Text(SQL_frame, padx=5, pady=3)
+query_box = Text(SQL_frame, wrap='word', font=("Consolas", 12), padx=5, pady=3)
 query_box.place(relx=0, rely=0.03, relwidth=1, relheight=0.37)
+
+query_box.tag_configure("keyword", foreground="#CC7832")
+query_box.tag_configure("function", foreground="#FFC66D")
+query_box.tag_configure("string", foreground="#96CC00")
+query_box.tag_configure("comment", foreground="#339966")
+query_box.tag_configure("number", foreground="#6897BB")
+query_box.tag_configure("datatype", foreground="#9876AA")
+query_box.tag_configure("system", foreground="#A9B7C6")
 
 SQL_button_frame = tb.Frame(SQL_frame, bootstyle=SECONDARY)
 SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
@@ -334,5 +452,15 @@ btn_clear.pack(side='left', expand=True)
 
 txt_list = Text(lower_frame)
 txt_list.pack(expand=True, fill='both')
+
+# # scrollbars
+# hbar=Scrollbar(result_box, orient=HORIZONTAL, bg=theme.scrllbg)
+# hbar.pack(side=BOTTOM, fill=X)
+# hbar.config(command=txt_list.xview)
+# vbar=Scrollbar(result_box, orient=VERTICAL, bg=theme.scrllbg)
+# vbar.pack(side=RIGHT, fill=Y)
+# vbar.config(command=txt_list.yview)
+
+query_box.bind("<KeyRelease>", lambda e: highlight_sql(query_box))
 
 root.mainloop()
