@@ -18,6 +18,7 @@ file_list = ''
 query_file_dir = ''
 result = pd.DataFrame()
 
+# from oracle sql docs
 SQL_KEYWORDS = {
     'ABORT','ACTION','ADD','AFTER','ALL','ALTER','ALWAYS','ANALYZE','AND','AS','ASC','ATTACH',
     'AUTOINCREMENT','BEFORE','BEGIN','BETWEEN','BY','CASCADE','CASE','CAST','CHECK','COLLATE',
@@ -221,6 +222,8 @@ def compile():
     if len(query_box.get("1.0", END)) <= 1:
         query_box.insert(END, 'SELECT *\nFROM all_data a')
 
+    highlight_sql(query_box)
+
     # check that columns are all the same, then list data for message output
     # PLAN: check for matching column names or data types
     all_same = all(x == col_count[0] for x in col_count)
@@ -230,7 +233,7 @@ def compile():
     # buf:  writable buffer, defaults to sys.stdout
     buffer = StringIO()
     all_data.info(buf=buffer)
-    msg += '\n'+buffer.getvalue()
+    msg += buffer.getvalue()
 
     msg += file_col_msg
 
@@ -307,7 +310,7 @@ def load_SQL():
     global query_file_dir
     clear_SQL()
     query_file_dir = filedialog.askopenfilename(initialdir=r"C:\Python Programs\Table Compiler\SQLite Queries")
-    query_file_label['text'] = query_file_dir
+    # query_file_label['text'] = query_file_dir
 
     with open(query_file_dir, "r") as myfile:
         query=myfile.read()
@@ -315,6 +318,8 @@ def load_SQL():
     btn_save_as_SQL['state'] = NORMAL
 
     query_box.insert(END, query)
+
+    highlight_sql(query_box)
 
 def save_SQL():
     global query_file_dir
@@ -337,7 +342,7 @@ def save_as_SQL():
         query = query_box.get("1.0", END)
     
     new_save = filedialog.asksaveasfile(defaultextension='.txt')
-    query_file_label['text'] = new_save.name
+    # query_file_label['text'] = new_save.name
 
     try:
         new_save.write(query.rstrip())
@@ -346,7 +351,7 @@ def save_as_SQL():
 
 def clear_SQL():
     query_box.delete('1.0', END)
-    query_file_label['text']=''
+    # query_file_label['text']=''
 
 def export_results():
     global result
@@ -354,10 +359,36 @@ def export_results():
     result.to_excel(fn, index=False)
     os.system('start EXCEL.EXE "{}""'.format(fn))
 
-# window
-root = tb.Window(themename="darkly")
+def load_theme():
+    try:
+        with open("theme_config.txt", "r") as f:
+            theme = f.read().strip()
+            if theme in ["darkly", "yeti"]:
+                return theme
+    except:
+        pass
+    return "darkly"  # default if not found or corrupted
+
+def toggle_theme():
+    if current_theme["name"] == "darkly":
+        root.style.theme_use("yeti")
+        current_theme["name"] = "yeti"
+    else:
+        root.style.theme_use("darkly")
+        current_theme["name"] = "darkly"
+
+    with open("theme_config.txt", "w") as f:
+        f.write(current_theme["name"])
+
+#---------------------#
+#        window       #
+#---------------------#
+
+current_theme = {'name': load_theme()}
+
+root = tb.Window(themename=current_theme['name'])
 root.title("Flat File Database Analyzer")
-root.geometry('1200x600')
+root.geometry('1250x700')
 
 compiler_frame = tb.Frame(root, bootstyle=PRIMARY)
 compiler_frame.place(relx=0.55, rely=0, relwidth=0.45, relheight=1)
@@ -365,12 +396,15 @@ compiler_frame.place(relx=0.55, rely=0, relwidth=0.45, relheight=1)
 SQL_frame = tb.Frame(root, bootstyle=PRIMARY)
 SQL_frame.place(relx=0, rely=0, relwidth=0.55, relheight=1)
 
-# SQL (left side)
-query_file_label = tb.Label(SQL_frame, text='', anchor='w', bootstyle=PRIMARY)
-query_file_label.place(relx=0, rely=0, relwidth=1, relheight=0.03)
+#---------------------#
+#   SQL (left side)   #
+#---------------------#
+
+# query_file_label = tb.Label(SQL_frame, text='', anchor='w', bootstyle=PRIMARY)
+# query_file_label.place(relx=0, rely=0, relwidth=1, relheight=0.03)
 
 query_box = Text(SQL_frame, wrap='word', font=("Consolas", 12), padx=5, pady=3)
-query_box.place(relx=0, rely=0.03, relwidth=1, relheight=0.37)
+query_box.place(relx=0, rely=0, relwidth=1, relheight=0.4)
 
 query_box.tag_configure("keyword", foreground="#CC7832")
 query_box.tag_configure("function", foreground="#FFC66D")
@@ -404,13 +438,18 @@ btn_clear_SQL.pack(side='left', expand=True)
 btn_export_results = tb.Button(SQL_button_frame, text="Export Results", state=DISABLED, command=export_results, bootstyle=PRIMARY)
 btn_export_results.pack(side='left', expand=True)
 
-# compiler (right side)
+#-----------------------#
+# compiler (right side) #
+#-----------------------#
+
+# frames
 upper_frame = tb.Frame(compiler_frame, bootstyle=SECONDARY)
 upper_frame.place(relx=0, rely=0, relwidth=1, relheight=0.13)
 
 lower_frame = tb.Frame(compiler_frame, bootstyle=PRIMARY)
 lower_frame.place(relx=0, rely=0.13, relwidth=1, relheight=0.87)
 
+# upper frame (controls)
 btn_open_file = tb.Button(upper_frame, text="Select", command=open_file, bootstyle=PRIMARY)
 btn_open_file.pack(side='left', expand=True)
 
@@ -450,17 +489,22 @@ btn_save.pack(side='left', expand=True)
 btn_clear = tb.Button(upper_frame, text="Clear", state=DISABLED, command=clear_files, bootstyle=PRIMARY)
 btn_clear.pack(side='left', expand=True)
 
-txt_list = Text(lower_frame)
-txt_list.pack(expand=True, fill='both')
+btn_toggle_theme = tb.Button(upper_frame, text="\u2600", command=toggle_theme, bootstyle=INFO)
+btn_toggle_theme.pack(side='left', expand=True)
 
-# # scrollbars
-# hbar=Scrollbar(result_box, orient=HORIZONTAL, bg=theme.scrllbg)
-# hbar.pack(side=BOTTOM, fill=X)
-# hbar.config(command=txt_list.xview)
-# vbar=Scrollbar(result_box, orient=VERTICAL, bg=theme.scrllbg)
-# vbar.pack(side=RIGHT, fill=Y)
-# vbar.config(command=txt_list.yview)
+# DATAFRAME PRINTOUT
+# txt_list = Text(lower_frame)
+# txt_list.pack(expand=True, fill='both')
 
+scrollbar = tb.Scrollbar(lower_frame, orient=VERTICAL)
+scrollbar.pack(side=RIGHT, fill=Y)
+
+txt_list = Text(lower_frame, yscrollcommand=scrollbar.set)
+txt_list.pack(side=LEFT, expand=True, fill='both')
+
+scrollbar.config(command=txt_list.yview)
+
+# Reevaluates SQL highlighting while typing
 query_box.bind("<KeyRelease>", lambda e: highlight_sql(query_box))
 
 root.mainloop()
