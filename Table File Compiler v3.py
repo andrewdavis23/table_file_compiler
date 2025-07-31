@@ -288,8 +288,7 @@ def save_file():
     out_path.close()
 
 def run_SQL():
-    global all_data
-    global result  
+    global all_data, result
 
     try:
         query = query_box.selection_get()
@@ -299,12 +298,20 @@ def run_SQL():
     try:
         result = pysqldf(query)
     except BaseException as em:
-        result = em
+        result = pd.DataFrame([{"Error": str(em)}])
 
-    result_box.config(state=NORMAL)
-    result_box.delete("1.0", END)
-    result_box.insert(END, result)
-    result_box.config(state=DISABLED)
+    # Clear previous content
+    result_table.delete(*result_table.get_children())
+    result_table["columns"] = list(result.columns)
+
+    # Setup headers
+    for col in result.columns:
+        result_table.heading(col, text=col)
+        result_table.column(col, width=100, anchor='w')
+
+    # Insert data
+    for _, row in result.iterrows():
+        result_table.insert("", "end", values=list(row))
    
 def load_SQL():
     global query_file_dir
@@ -388,20 +395,20 @@ current_theme = {'name': load_theme()}
 
 root = tb.Window(themename=current_theme['name'])
 root.title("Flat File Database Analyzer")
-root.geometry('1250x700')
+root.geometry("1400x800")
+root.state('zoomed')  # Maximizes the window
 
-compiler_frame = tb.Frame(root, bootstyle=PRIMARY)
-compiler_frame.place(relx=0.55, rely=0, relwidth=0.45, relheight=1)
+# right side
+compiler_frame = tb.Frame(root, bootstyle=SECONDARY)
+compiler_frame.place(relx=0.7, rely=0, relwidth=0.3, relheight=1)
 
+# left side
 SQL_frame = tb.Frame(root, bootstyle=PRIMARY)
-SQL_frame.place(relx=0, rely=0, relwidth=0.55, relheight=1)
+SQL_frame.place(relx=0, rely=0, relwidth=0.7, relheight=1)
 
 #---------------------#
 #   SQL (left side)   #
 #---------------------#
-
-# query_file_label = tb.Label(SQL_frame, text='', anchor='w', bootstyle=PRIMARY)
-# query_file_label.place(relx=0, rely=0, relwidth=1, relheight=0.03)
 
 query_box = Text(SQL_frame, wrap='word', font=("Consolas", 12), padx=5, pady=3)
 query_box.place(relx=0, rely=0, relwidth=1, relheight=0.4)
@@ -417,8 +424,21 @@ query_box.tag_configure("system", foreground="#A9B7C6")
 SQL_button_frame = tb.Frame(SQL_frame, bootstyle=SECONDARY)
 SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
 
-result_box = Text(SQL_frame, state=DISABLED, wrap='none', padx=5, pady=3)
-result_box.place(relx=0, rely=0.5, relwidth=1, relheight=0.5)
+# RESULTS TABLE WITH SCROLLBARS
+result_frame = tb.Frame(SQL_frame)
+result_frame.place(relx=0, rely=0.5, relwidth=1, relheight=0.5)
+
+result_table = tb.Treeview(result_frame, show='headings')
+
+result_scrollbar = tb.Scrollbar(result_frame, orient='vertical', command=result_table.yview)
+result_scrollbar.pack(side='right', fill='y')
+
+h_scroll = tb.Scrollbar(result_frame, orient='horizontal', command=result_table.xview)
+h_scroll.pack(side='bottom', fill='x')
+
+result_table.configure(yscrollcommand=result_scrollbar.set, xscrollcommand=h_scroll.set)
+
+result_table.pack(side='left', fill='both', expand=True)
 
 btn_run_SQL = tb.Button(SQL_button_frame, text="Run SQL", state=DISABLED, command=run_SQL, bootstyle=PRIMARY)
 btn_run_SQL.pack(side='left', expand=True)
@@ -437,6 +457,9 @@ btn_clear_SQL.pack(side='left', expand=True)
 
 btn_export_results = tb.Button(SQL_button_frame, text="Export Results", state=DISABLED, command=export_results, bootstyle=PRIMARY)
 btn_export_results.pack(side='left', expand=True)
+
+btn_toggle_theme = tb.Button(SQL_button_frame, text="\u2600", command=toggle_theme, bootstyle=INFO)
+btn_toggle_theme.pack(side='left', expand=True)
 
 #-----------------------#
 # compiler (right side) #
@@ -488,13 +511,6 @@ btn_save.pack(side='left', expand=True)
 
 btn_clear = tb.Button(upper_frame, text="Clear", state=DISABLED, command=clear_files, bootstyle=PRIMARY)
 btn_clear.pack(side='left', expand=True)
-
-btn_toggle_theme = tb.Button(upper_frame, text="\u2600", command=toggle_theme, bootstyle=INFO)
-btn_toggle_theme.pack(side='left', expand=True)
-
-# DATAFRAME PRINTOUT
-# txt_list = Text(lower_frame)
-# txt_list.pack(expand=True, fill='both')
 
 scrollbar = tb.Scrollbar(lower_frame, orient=VERTICAL)
 scrollbar.pack(side=RIGHT, fill=Y)
