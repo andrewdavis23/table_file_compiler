@@ -1,5 +1,6 @@
 from tkinter import filedialog
 from tkinter import Text
+from tkinter import messagebox
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 import pandas as pd
@@ -7,6 +8,23 @@ from pandasql import sqldf
 import os
 from io import StringIO
 import re
+
+about_str = """
+Flat File Database Analyzer
+Version 3
+Created by Andrew
+https://github.com/andrewdavis23/table_file_compiler
+"""
+
+instructions_str = """
+This is a Flat File Database Analyzer.
+Use the left side to write SQL queries and the right side to compile flat files.
+Select files using the "Select" button.
+You can choose to include headers and specify a delimiter.
+Compile the files by clicking the "Compile" button.
+Once compiled, you can run SQL queries on the data.
+You can save the compiled data to a file or export the results of your SQL queries.
+"""
 
 #initialize sql environment
 pysqldf = lambda q: sqldf(q, globals())
@@ -51,6 +69,26 @@ SQL_FUNCTIONS = {
     'TYPEOF','UNHEX','UNHEX','UNICODE','UNISTR','UNISTR_QUOTE','UNLIKELY','UPPER','ZEROBLOB',
     'AVG','COUNT','COUNT','GROUP_CONCAT','GROUP_CONCAT','MAX','MIN','STRING_AGG','SUM','TOTAL',
     'DATE','TIME','DATETIME','JULIANDAY','UNIXEPOCH','STRFTIME','DATETIME',
+}
+
+dark_theme_colors = {
+    "keyword": "#CC7832",
+    "function": "#FFC66D",
+    "string": "#96CC00",
+    "comment": "#339966",
+    "number": "#6897BB",
+    "datatype": "#9876AA",
+    "system": "#A9B7C6"
+}
+
+light_theme_colors = {
+    "keyword": "#0000FF",
+    "function": "#009B37",
+    "string": "#FF0000",
+    "comment": "#808080",
+    "number": "#FF00FF",
+    "datatype": "#8000FF",
+    "system": "#009B37"
 }
 
 def highlight_sql(text_widget):
@@ -127,6 +165,11 @@ def highlight_sql(text_widget):
             start = f"1.0 + {match.start()} chars"
             end = f"1.0 + {match.end()} chars"
             text_widget.tag_add("system", start, end)
+
+def apply_syntax_colors(theme_name):
+    colors = dark_theme_colors if theme_name == "darkly" else light_theme_colors
+    for tag, color in colors.items():
+        query_box.tag_configure(tag, foreground=color)
 
 # select files and display file names in window
 def open_file():
@@ -384,6 +427,8 @@ def toggle_theme():
         root.style.theme_use("darkly")
         current_theme["name"] = "darkly"
 
+    apply_syntax_colors(current_theme["name"])
+
     with open("theme_config.txt", "w") as f:
         f.write(current_theme["name"])
 
@@ -397,6 +442,26 @@ root = tb.Window(themename=current_theme['name'])
 root.title("Flat File Database Analyzer")
 root.geometry("1400x800")
 root.state('zoomed')  # Maximizes the window
+
+# file menu
+menu = tb.Menu(root)
+root.config(menu=menu)
+file_menu = tb.Menu(menu, tearoff=0)
+options_menu = tb.Menu(menu, tearoff=0)
+help_menu = tb.Menu(menu, tearoff=0)
+menu.add_cascade(label='File', menu=file_menu)
+file_menu.add_command(label="Load SQL", command=load_SQL)
+file_menu.add_command(label="Save SQL", command=save_SQL)
+file_menu.add_command(label="Save As SQL", command=save_as_SQL)
+file_menu.add_command(label="Clear SQL", command=clear_SQL)
+file_menu.add_separator()
+file_menu.add_command(label='Exit', command=root.quit)
+menu.add_cascade(label='Options', menu=options_menu)
+options_menu.add_command(label='Toggle Theme', command=toggle_theme)
+menu.add_cascade(label='Help', menu=help_menu)
+help_menu.add_command(label='About', command=lambda: messagebox.showinfo("About",about_str))
+help_menu.add_separator()
+help_menu.add_command(label='Instructions', command=lambda: messagebox.showinfo("Instructions",instructions_str))
 
 # right side
 compiler_frame = tb.Frame(root, bootstyle=SECONDARY)
@@ -413,13 +478,7 @@ SQL_frame.place(relx=0, rely=0, relwidth=0.7, relheight=1)
 query_box = Text(SQL_frame, wrap='word', font=("Consolas", 12), padx=5, pady=3)
 query_box.place(relx=0, rely=0, relwidth=1, relheight=0.4)
 
-query_box.tag_configure("keyword", foreground="#CC7832")
-query_box.tag_configure("function", foreground="#FFC66D")
-query_box.tag_configure("string", foreground="#96CC00")
-query_box.tag_configure("comment", foreground="#339966")
-query_box.tag_configure("number", foreground="#6897BB")
-query_box.tag_configure("datatype", foreground="#9876AA")
-query_box.tag_configure("system", foreground="#A9B7C6")
+apply_syntax_colors(current_theme["name"])
 
 SQL_button_frame = tb.Frame(SQL_frame, bootstyle=SECONDARY)
 SQL_button_frame.place(relx=0, rely=0.4, relwidth=1, relheight=0.1)
@@ -443,23 +502,8 @@ result_table.pack(side='left', fill='both', expand=True)
 btn_run_SQL = tb.Button(SQL_button_frame, text="Run SQL", state=DISABLED, command=run_SQL, bootstyle=PRIMARY)
 btn_run_SQL.pack(side='left', expand=True)
 
-btn_load_SQL = tb.Button(SQL_button_frame, text="Load", state=NORMAL, command=load_SQL, bootstyle=PRIMARY)
-btn_load_SQL.pack(side='left', expand=True)
-
-btn_save_SQL = tb.Button(SQL_button_frame, text="Save", state=NORMAL, command=save_SQL, bootstyle=PRIMARY)
-btn_save_SQL.pack(side='left', expand=True)
-
-btn_save_as_SQL = tb.Button(SQL_button_frame, text="Save As", state=DISABLED, command=save_as_SQL, bootstyle=PRIMARY)
-btn_save_as_SQL.pack(side='left', expand=True)
-
-btn_clear_SQL = tb.Button(SQL_button_frame, text="Clear SQL", state=NORMAL, command=clear_SQL, bootstyle=PRIMARY)
-btn_clear_SQL.pack(side='left', expand=True)
-
 btn_export_results = tb.Button(SQL_button_frame, text="Export Results", state=DISABLED, command=export_results, bootstyle=PRIMARY)
 btn_export_results.pack(side='left', expand=True)
-
-btn_toggle_theme = tb.Button(SQL_button_frame, text="\u2600", command=toggle_theme, bootstyle=INFO)
-btn_toggle_theme.pack(side='left', expand=True)
 
 #-----------------------#
 # compiler (right side) #
