@@ -298,7 +298,6 @@ def check_ready():
             btn_save['state'] = NORMAL
             btn_run_SQL['state'] = NORMAL
             btn_export_results['state'] = NORMAL
-            btn_clear_SQL['state'] = NORMAL
         else:
             btn_save['state'] = DISABLED
             btn_run_SQL['state'] = DISABLED
@@ -360,12 +359,9 @@ def load_SQL():
     global query_file_dir
     clear_SQL()
     query_file_dir = filedialog.askopenfilename(initialdir=r"C:\Python Programs\Table Compiler\SQLite Queries")
-    # query_file_label['text'] = query_file_dir
 
     with open(query_file_dir, "r") as myfile:
         query=myfile.read()
-
-    btn_save_as_SQL['state'] = NORMAL
 
     query_box.insert(END, query)
 
